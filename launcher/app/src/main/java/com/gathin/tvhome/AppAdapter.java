@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.ActivityNotFoundException;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -23,6 +24,9 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.PopupMenu;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -44,7 +48,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         void onTileFocused(int position, View card);
 
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
-        boolean onTileVerticalKey(int position, int keyCode);
+        boolean onTileKey(int position, int keyCode);
+        void onMoveRequested(int position);
+        boolean onTileClicked(int position);
     }
 
     static final class Entry {
@@ -64,7 +70,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
-    static final float FOCUS_SCALE = 1.10f;
+    static final float FOCUS_SCALE = 1.12f;
 
     private final Context ctx;
     private final TileListener listener;
@@ -88,21 +94,43 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     void reload() {
         PackageManager pm = ctx.getPackageManager();
+        List<String> order = new ArrayList<>(favourites);
+        String saved = ctx.getSharedPreferences("launcher_layout", Context.MODE_PRIVATE)
+                .getString("app_order", null);
+        if (saved != null) {
+            try {
+                JSONArray values = new JSONArray(saved);
+                order.clear();
+                for (int i = 0; i < values.length(); i++) order.add(values.getString(i));
+            } catch (JSONException ignored) {
+                order.clear();
+                order.addAll(favourites);
+            }
+        }
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        found.addAll(pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER), 0));
+        found.addAll(pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_HOME), 0));
+        Set<String> seen = new HashSet<>();
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+            if ((pkg.equals(ctx.getPackageName())
+                    && !ri.activityInfo.name.equals(RestoreHomeActivity.class.getName()))
+                    || hidden.contains(pkg)) continue;
+            if (!seen.add(pkg)) continue;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
+            if (pkg.equals("com.dangbei.TVHomeLauncher")) label = "索尼原桌面";
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
         }
         Collections.sort(fresh, (a, b) -> {
-            int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
+            int fa = order.indexOf(a.pkg), fb = order.indexOf(b.pkg);
             if (fa >= 0 || fb >= 0) {
                 if (fa < 0) return 1;
                 if (fb < 0) return -1;
@@ -131,6 +159,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
+        h.card.setTranslationY(focused ? -4f * ctx.getResources().getDisplayMetrics().density : 0f);
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
@@ -144,25 +173,45 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setContentDescription(e.label);
+        h.card.setOnClickListener(v -> {
+            int pos = h.getBindingAdapterPosition();
+            if (pos != RecyclerView.NO_POSITION && !listener.onTileClicked(pos)) launch(e);
+        });
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            PopupMenu menu = new PopupMenu(ctx, h.card);
+            menu.getMenu().add(0, 1, 0, "移动应用");
+            menu.getMenu().add(0, 2, 1, "应用信息");
+            menu.setOnMenuItemClickListener(item -> {
+                int pos = h.getBindingAdapterPosition();
+                if (pos == RecyclerView.NO_POSITION) return true;
+                if (item.getItemId() == 1) listener.onMoveRequested(pos);
+                else {
+                    Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    try { ctx.startActivity(i); } catch (ActivityNotFoundException ignored) { }
+                }
+                return true;
+            });
+            menu.show();
             return true;
         });
     }
 
     private void launch(Entry e) {
+        if (e.component.getClassName().equals(RestoreHomeActivity.class.getName())) {
+            ctx.startActivity(new Intent(ctx, RestoreHomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return;
+        }
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             ctx.startActivity(i);
+            if (ctx instanceof Activity) {
+                ((Activity) ctx).overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
+            }
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
         }
@@ -190,6 +239,22 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (items.get(i).component.flattenToShortString().equals(key)) return i;
         }
         return -1;
+    }
+
+    void moveItem(int from, int to) {
+        if (from == to) return;
+        Entry entry = items.remove(from);
+        items.add(to, entry);
+        notifyItemMoved(from, to);
+        // Moving across the first row changes which labels use the dock style.
+        notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
+    }
+
+    void saveOrder() {
+        JSONArray order = new JSONArray();
+        for (Entry item : items) order.put(item.pkg);
+        ctx.getSharedPreferences("launcher_layout", Context.MODE_PRIVATE).edit()
+                .putString("app_order", order.toString()).apply();
     }
 
     String labelAt(int position) {
@@ -273,17 +338,23 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
+                        && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
                 int pos = getBindingAdapterPosition();
-                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileKey(pos, keyCode);
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
                 float s = focused ? FOCUS_SCALE : 1.0f;
+                view.animate().cancel();
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 260 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
+                        .translationY(focused ? -4f * density : 0f)
+                        .translationZ(focused ? 8f * density : 0f)
+                        .setDuration(focused ? 220 : 170)
+                        .setInterpolator(new OvershootInterpolator(focused ? 0.7f : 0f))
                         .start();
+                banner.animate().scaleX(focused ? 1.035f : 1f).scaleY(focused ? 1.035f : 1f)
+                        .setDuration(280).start();
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 4f : -density * 6f)
                         .setDuration(220).start();

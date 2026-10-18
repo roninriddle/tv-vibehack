@@ -1,6 +1,8 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.animation.ValueAnimator;
+import android.animation.ArgbEvaluator;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -64,9 +66,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView heroName;
     private GradientDrawable ambientGlow;
     private int ambientColor;
+    private ValueAnimator ambientAnimator;
     private boolean heroShown;
     private TextView greeting;
     private TextView btnWifi;
+    private TextView moveHint;
+    private boolean movingTile;
+    private String movingKey;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
     private boolean glassShown;
@@ -119,6 +125,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
         btnWifi = findViewById(R.id.btnWifi);
+        moveHint = findViewById(R.id.moveHint);
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
@@ -130,11 +137,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         adapter = new AppAdapter(this, this, COLUMNS);
         grid.setAdapter(adapter);
 
-        // tvOS layout: push the dock row to the bottom of the screen; the grid hides below until you press Down.
+        // Keep both requested rows visible on the Sony's 1080p Android canvas.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
-            int dockRow = (int) ((145 + 6 + 12) * density);   // item height plus DockDecoration offsets
-            int want = Math.max(0, h - dockRow - (int) (30 * density));
+            int twoRows = (int) ((146 * 2 + 18 + 40) * density);
+            int want = Math.max((int) (12 * density), h - twoRows);
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
@@ -155,7 +162,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         springX = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_X);
         springY = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_Y);
         for (SpringAnimation s : new SpringAnimation[]{springX, springY}) {
-            s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
+            s.setSpring(new SpringForce().setStiffness(320f).setDampingRatio(0.76f));
         }
 
         View btnInputs = findViewById(R.id.btnInputs);
@@ -169,12 +176,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(Math.min(lastFocused, COLUMNS - 1));
+                return true;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
+        for (View button : new View[]{btnInputs, btnWifi, btnSettings}) {
+            button.setOnFocusChangeListener((view, focused) -> view.animate()
+                    .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
+                    .setDuration(160).start());
+        }
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -215,6 +231,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(minuteTick);
+        if (ambientAnimator != null) ambientAnimator.cancel();
+        if (movingTile) {
+            movingTile = false;
+            moveHint.setVisibility(View.GONE);
+            adapter.reload();
+        }
     }
 
     @Override
@@ -226,7 +248,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
+        if (movingTile) finishMove(false);
         // Home screen: Back goes nowhere.
+    }
+
+    @Override
+    public void onMoveRequested(int position) {
+        movingKey = adapter.keyAt(position);
+        movingTile = true;
+        moveHint.setVisibility(View.VISIBLE);
+        focusTile(position);
+    }
+
+    @Override
+    public boolean onTileClicked(int position) {
+        if (!movingTile) return false;
+        finishMove(true);
+        return true;
+    }
+
+    private void finishMove(boolean save) {
+        movingTile = false;
+        moveHint.setVisibility(View.GONE);
+        if (save) adapter.saveOrder();
+        else adapter.reload();
+        String key = movingKey;
+        grid.post(() -> focusTile(Math.max(0, adapter.positionOf(key))));
+        Toast.makeText(this, save ? "排列已保存" : "已取消移动", Toast.LENGTH_SHORT).show();
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -242,7 +290,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float w = card.getWidth() * AppAdapter.FOCUS_SCALE + 2 * pad;
         float h = card.getHeight() * AppAdapter.FOCUS_SCALE + 2 * pad;
         float x = r.exactCenterX() - w / 2f;
-        float y = r.exactCenterY() - h / 2f;
+        float y = r.exactCenterY() - h / 2f - 4f * density;
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();
         if (lp.width != (int) w || lp.height != (int) h) {
@@ -303,10 +351,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
             }).start();
             if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
-                }).start();
+                if (ambientAnimator != null) ambientAnimator.cancel();
+                ambientAnimator = ValueAnimator.ofObject(new ArgbEvaluator(), ambientColor, color);
+                ambientAnimator.setDuration(360);
+                ambientAnimator.addUpdateListener(animation -> setAmbient((int) animation.getAnimatedValue()));
+                ambientAnimator.start();
             }
         } else {
             heroName.setY(y);
@@ -335,18 +384,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
-    public boolean onTileVerticalKey(int position, int keyCode) {
+    public boolean onTileKey(int position, int keyCode) {
         int count = adapter.getItemCount();
+        int row = position / COLUMNS;
+        int start = row * COLUMNS;
+        int size = Math.min(COLUMNS, count - start);
+        int column = position - start;
         int target;
-        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+            if (column == 0) return true;
+            target = position - 1;
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (column == size - 1) return true;
+            target = position + 1;
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (row == 0) return movingTile;
             target = position - COLUMNS;
         } else {
-            int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
-            if (position >= lastRowStart) return true;     // already on the last row: stay put
-            target = Math.min(position + COLUMNS, count - 1);
+            int nextStart = start + size;
+            if (nextStart >= count) return true;
+            target = position + COLUMNS;
+            target = Math.min(target, count - 1);
         }
-        focusTile(target);
+        if (movingTile) adapter.moveItem(position, target);
+        final int slot = target;
+        grid.post(() -> focusTile(slot));
         return true;
     }
 
@@ -361,18 +423,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else card.requestFocus();
             return;
         }
-        // Not laid out yet: scroll there, then focus once the scroll settles.
-        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(@NonNull RecyclerView rv, int newState) {
-                if (newState != RecyclerView.SCROLL_STATE_IDLE) return;
-                rv.removeOnScrollListener(this);
-                RecyclerView.ViewHolder h = rv.findViewHolderForAdapterPosition(pos);
-                View target = h != null ? h.itemView.findViewById(R.id.card) : rv.getChildAt(0);
-                if (target != null) target.requestFocus();
-            }
-        });
-        grid.smoothScrollToPosition(pos);
+        // Initial layout may not scroll at all, so waiting for SCROLL_STATE_IDLE can lose focus.
+        grid.scrollToPosition(pos);
+        grid.postOnAnimation(() -> finishTileFocus(pos, 20));
+    }
+
+    private void finishTileFocus(int position, int framesLeft) {
+        RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(position);
+        if (holder != null) {
+            View card = holder.itemView.findViewById(R.id.card);
+            if (card.isFocused()) onTileFocused(position, card);
+            else card.requestFocus();
+        } else if (framesLeft > 0) {
+            grid.postOnAnimation(() -> finishTileFocus(position, framesLeft - 1));
+        }
     }
 
     // ---- top bar ---------------------------------------------------------------------------------
