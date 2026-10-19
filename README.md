@@ -2,16 +2,16 @@
 
 基于 [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv) 的个人适配项目，为索尼国行电视提供简洁、可用遥控器排序的桌面。适配过程中没有安装 Google 框架，也没有刷机、root、卸载或停用系统应用。
 
-**使用索尼适配版请切换到 [`sony-cn`](https://github.com/roninriddle/tv-vibehack/tree/sony-cn)。`main` 同步上游 v2.2.0 的原始源码，仓库入口说明保留中文。**
+**默认长期分支为 [`sony`](https://github.com/roninriddle/tv-vibehack/tree/sony)，已合并原 `main` 与 `sony-cn` 的完整历史，保留索尼适配并继续从上游同步。**
 
 ## 版本与验证状态
 
 | 版本 | 状态 |
 | --- | --- |
 | `2.2.3-sony-cn` / 206 | 此前已在 Sony K-85XR70 上安装并完成短时功能验证；原始快照见 [`e85d8d0`](https://github.com/roninriddle/tv-vibehack/commit/e85d8d0175790c3535d1abb2e9b66ae4a0491b38) |
-| `2.4.0-sony-cn-preview` / 209 | `sony-cn` 当前源码，基于上游 v2.2.0 / `8a8249f`，targetSdk 34；已通过直接 SDK 编译和签名检查，尚未安装或完成实机回归 |
+| `2.4.0-sony-cn-preview` / 209 | `sony` 当前源码，基于上游 v2.2.0 / `8a8249f`，targetSdk 34；已通过 SDK 构建、本地检查与隔离包实机短测，完整回归仍待完成 |
 
-209 是待验证的集成候选版。本轮未更新电视；此前实测的安装版本为 206，仓库更新不会自动更新电视。
+209 已使用独立应用 ID 完成实机短测，随后移除测试应用。电视现用桌面仍为 206，默认桌面、排列和显示参数保持原状；仓库更新不会自动更新电视。
 
 ## 本次同步（2026-10-19）
 
@@ -19,7 +19,7 @@
 
 索尼默认仍为四列两排、原八应用顺序，焦点缩放保留 1.12 倍，排列存储格式和独立恢复入口不变。移动应用时延后软件包刷新，保存/取消后再刷新；卡片提示不会打断移动。模块卡片的重名检查也覆盖本分支显示的普通 Android 应用与 HOME 入口。
 
-直接 SDK 编译/签名检查、42 项上游模块卡片 JVM 测试、九组布局计算及主题脚本本地模拟检查通过。新增卡片/VPN 提示已中文化，46 条默认界面文字的中文覆盖与格式参数检查通过。**本次未安装到电视，209 的实际内存、排序与卡片交互仍待实测**；完整范围见 [验证说明](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/docs/sony-209-validation.md)。
+直接 SDK 编译/签名检查、42 项上游模块卡片 JVM 测试、九组布局计算及主题脚本本地模拟检查通过。新增卡片/VPN 提示已中文化，46 条默认界面文字的中文覆盖与格式参数检查通过。**209 隔离包已实测排序、设置返回、动画两种路径及卡片安装/更新/移除；测试应用已清理**；完整范围见 [验证说明](https://github.com/roninriddle/tv-vibehack/blob/sony/docs/sony-209-validation.md)。
 
 ## 当前索尼适配版功能
 
@@ -32,7 +32,7 @@
 | 模块卡片 | 应用声明专属卡片后由用户选择显示；默认选择“保持隐藏”，决定与签名及卡片名称绑定；长按顶部“设置”管理，可用 `module_cards=false` 关闭 |
 | 应用入口发现 | 发现 TV 应用、普通 Android 应用和桌面入口，按应用包名去重 |
 | 增强动画 | GPU 加速、焦点缩放与上浮、弹性高亮、按应用图标取色的背景过渡、顶部按钮反馈、应用进入动画 |
-| 动画与焦点修复 | 候选版加入快速切换时的标题/背景动画取消处理，合并上游滚动高亮对齐及返回应用后的焦点修复；这些新增集成仍待实测 |
+| 动画与焦点修复 | 候选版加入快速切换时的标题/背景动画取消处理，合并上游滚动高亮对齐及返回应用后的焦点修复；已通过隔离包快速往返、取消/保存/重开及设置返回短测 |
 | 电视端恢复桌面 | “恢复索尼原桌面”图标打开系统默认桌面选择页，由用户选择原桌面；原桌面须保持启用 |
 | 输入源与系统入口 | 输入源菜单、直播入口、网络与系统设置快捷入口；实际 HDMI 切换仍待专项验证 |
 | 主题与壁纸 | 可用应用外部文件目录中的 `config.json` 覆盖部分布局和颜色配置，可选 `wallpaper.jpg`；重启桌面读取，无需重编译。默认仍为 Sony 黑色背景，不自动应用主题 |
@@ -49,29 +49,29 @@
 
 排序在电视上即可修改，不需要电脑。初始配置不包含这些应用的安装包；未安装的应用不会因此被自动安装。
 
-![此前实机使用的索尼 206 版桌面](https://raw.githubusercontent.com/roninriddle/tv-vibehack/sony-cn/docs/sony-cn-home.png)
+![此前实机使用的索尼 206 版桌面](https://raw.githubusercontent.com/roninriddle/tv-vibehack/sony/docs/sony-cn-home.png)
 
 上图来自此前已安装的 206 版，不是 209 候选版完成回归的证明。
 
 ## 增强动画的内存与性能
 
-以下是 Sony K-85XR70 上的历史短测，统计的是**整个桌面进程**。PSS 是按比例分摊共享内存后的进程内存指标。
+以下是 Sony K-85XR70 上的短测，统计的是**整个桌面进程**。PSS 是按比例分摊共享内存后的进程内存指标。
 
 | 测试状态 | 内存 | 帧时间与 CPU |
 | --- | --- | --- |
 | 已实测 Sony 206 版增强动画 | 导航后 PSS 约 **85 MiB**，启动时约 **110 MiB** | 270 帧样本，系统报告卡顿帧 0，帧时间 p95 ≤ 7 ms；空闲 CPU 样本 0%，连续导航约占一个核心的 28%–30% |
 | 通用动画早期隔离测试，最终标题清理之前 | 导航后 PSS **88,816 KiB，约 86.7 MiB** | 292 帧样本，系统报告卡顿帧 0，帧时间 p95 8 ms、GPU 时间 p95 4 ms；导航 CPU 约占一个核心的 26.4%–29% |
-| 当前 209 集成候选版 | **待实机测量** | SDK 编译和签名检查已通过，不能据此推断实际流畅度或内存 |
+| 当前 209 隔离包，增强动画开启、未启用壁纸 | 启动 PSS **101,571 KiB，约 99.2 MiB**；导航后 **85,160 KiB，约 83.2 MiB** | 265 帧，系统报告卡顿帧 0，帧时间 p95 8 ms、GPU p95 4 ms；空闲 CPU 0%–1%，导航约占一个核心的 29%–31.2% |
 
-**这些数值不是“动画额外占用的内存”。** 尚无关闭动画后的同条件对照，不能计算动画本身的内存增量。短测中的 0 卡顿帧不等于长期无卡顿；启动与导航采样也不构成完整峰值测量。尚未完成数日运行、待机恢复或低内存设备验证。
+**这些数值不是“动画额外占用的内存”。** 尚无关闭动画后的同条件对照，不能计算动画本身的内存增量。短测中的 0 卡顿帧不等于长期无卡顿；启动与导航采样也不构成完整峰值测量。尚未完成数日运行、深度待机或低内存设备验证。
 
-模块卡片和自动刷新已加入当前候选版，整进程内存仍待测量。启用静态壁纸会增加图片解码和图形资源内存，**实际增量尚未测量**；上面的历史动画数据不包含这项新功能。图片文件大小不能直接代表解码后的内存占用。默认没有启用壁纸。
+209 样本已包含启用模块卡片和自动刷新的代码，但采样时没有第三方模块卡片应用在运行。启用静态壁纸会增加图片解码和图形资源内存，**实际增量尚未测量**；上面的样本均未启用壁纸。图片文件大小不能直接代表解码后的内存占用。默认没有启用壁纸。
 
 ## 主题配置
 
 主题以应用外部文件目录中的 `config.json` 覆盖内置 `config.xml` 的部分设置，并可搭配 `wallpaper.jpg`。每个键可选；不提供覆盖文件时继续使用 Sony 的内置配置。已有遥控器保存的应用顺序仍会优先用于排列。
 
-仓库保留上游 `default`、`aurora`、`six-columns` 示例和推送工具，具体键见 [`themes/README.md`](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/themes/README.md)。示例不是本机已验证方案：`default` 包含上游应用列表，`six-columns` 会改变列数。恢复 Sony 内置主题可移除覆盖文件；推送/重置工具会重启桌面，本轮没有执行这些电视操作。
+仓库保留上游 `default`、`aurora`、`six-columns` 示例和推送工具，具体键见 [`themes/README.md`](https://github.com/roninriddle/tv-vibehack/blob/sony/themes/README.md)。示例不是本机已验证方案：`default` 包含上游应用列表，`six-columns` 会改变列数。恢复 Sony 内置主题可移除覆盖文件；推送/重置工具会重启桌面，本轮没有执行这些电视操作。
 
 ## 已验证设备与显示限制
 
@@ -85,15 +85,19 @@
 
 此前已验证排序预览/取消/保存、重开后的排列保持、设置返回、输入菜单显示、恢复原桌面与重新启用、初始焦点及 Home 键。整机重启、数日待机、真实 HDMI 切换、全部流媒体播放、其他机型和固件仍待验证；本机结果不等于所有索尼电视均兼容。
 
+## 远程唤醒短测
+
+一次遥控器待机同类测试中，网络唤醒包未使电视醒来；调试连接仍可用时，专用唤醒指令成功恢复开机状态。电视最终保持开机，现用 206 桌面和排列不变。这不代表深度或整夜待机后也能远程唤醒；本轮未改网络待机设置。
+
 ## 构建与使用
 
 索尼源码和具体操作见：
 
-- [索尼分支详细说明](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/SONY_CN.md)
-- [索尼电视使用说明](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/索尼电视使用说明.md)
-- [桌面配置文件](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/launcher/app/src/main/res/values/config.xml)
+- [索尼分支详细说明](https://github.com/roninriddle/tv-vibehack/blob/sony/SONY_CN.md)
+- [索尼电视使用说明](https://github.com/roninriddle/tv-vibehack/blob/sony/索尼电视使用说明.md)
+- [桌面配置文件](https://github.com/roninriddle/tv-vibehack/blob/sony/launcher/app/src/main/res/values/config.xml)
 
-准备 JDK 17、Android SDK Platform 34 和 Build Tools 34.0.0，在 `sony-cn` 分支执行本地构建工具：
+准备 JDK 17、Android SDK Platform 34 和 Build Tools 34.0.0，在 `sony` 分支执行本地构建工具：
 
 ```bash
 python3 tools/build-sony.py --java-home /path/to/jdk17 --sdk /path/to/android-sdk
@@ -109,12 +113,9 @@ Android 无线调试的配对端口与连接端口通常不同。连接地址、
 
 ## 仓库分支与上游贡献
 
-长期保留以下两个分支；展示 PR #126 的 `docs/sony-showcase` 是用户授权的临时例外，合并后删除：
+长期只保留 `sony`，也是仓库默认分支。原 `main` 和 `sony-cn` 的提交历史均已合入，旧分支退役；已测试的 206 快照仍可按历史提交访问。展示 PR #126 的 `docs/sony-showcase` 是临时贡献分支，合并后删除。
 
-| 分支 | 用途 |
-| --- | --- |
-| `main` | 同步上游 v2.2.0 原始源码与中文仓库入口；不包含 Sony 专属功能代码 |
-| `sony-cn` | Sony 国行适配与后续集成；保留原排列数据格式和电视端恢复入口 |
+后续在 `sony` 获取并合并 `upstream/main`，解决冲突时保留索尼配置、排序存储键和中文说明，完成构建及适当验证后推送。上游跟踪引用不需要在个人仓库再保留一个 `main` 分支。
 
 上游贡献记录：
 
@@ -122,7 +123,7 @@ Android 无线调试的配对端口与连接端口通常不同。连接地址、
 - [#30 通用默认桌面入口](https://github.com/Gathin23/cleanyourtv/pull/30)：已合并；上游默认关闭，仅在存在系统选择页时显示。
 - [#32 简体中文本地化](https://github.com/Gathin23/cleanyourtv/pull/32)：已合并。
 - [#126 索尼适配展示](https://github.com/Gathin23/cleanyourtv/pull/126)：已提交，等待维护者处理；临时分支合并后删除。
-- [#56 动画过渡](https://github.com/Gathin23/cleanyourtv/pull/56)：为精简分支撤回尚待实测的草稿，实现保留在 `sony-cn`。
+- [#56 动画过渡](https://github.com/Gathin23/cleanyourtv/pull/56)：为精简分支撤回尚待实测的草稿，实现保留在 `sony`。
 - [#19 遥控器排序与应用库](https://github.com/Gathin23/cleanyourtv/pull/19)、[#24 无线调试说明](https://github.com/Gathin23/cleanyourtv/pull/24)：已补充索尼测试反馈。#19 的独立应用库不是本 Sony 分支已经合入的功能。
 
 没有经过数日精简验证，不为本机提供 debloat 清单。其他机型的上游清单不能直接视为本机适用。
