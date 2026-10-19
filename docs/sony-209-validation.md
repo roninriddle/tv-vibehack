@@ -75,11 +75,12 @@ No network-wake settings were changed.
 
 ## Remaining limits
 
-Normal-package build 209 was not installed over build 206. Contribution APKs use a test key and
-must not overwrite the working installation. Gradle/R8/lint, signing-key-change prompts, exhaustive
+The unsigned source and ordinary contribution APK are unchanged by branch consolidation. Ordinary
+contribution APKs use a test key and must not overwrite an existing installation with a different
+key. Gradle/R8/lint, signing-key-change prompts, exhaustive
 card-limit cases, wallpaper memory, actual HDMI switching, all streaming apps, a full TV reboot,
-multi-day running and deep standby remain unverified. Existing 206 input-menu/recovery-picker
-checks are historical evidence, not a new 209 regression result.
+multi-day running and deep standby remain unverified. Actual default-HOME switching/re-enabling
+was tested on build 206; the new 209 regression only opens/cancels the picker.
 
 ## Consolidated branch
 
@@ -87,3 +88,27 @@ The default long-term branch is `sony`, merging both former `main` and `sony-cn`
 The merge did not change the tested launcher source. Future updates merge `upstream/main` into
 `sony` while preserving Sony configuration and saved-order compatibility. The separate
 docs/sony-showcase contribution branch remains only until upstream PR #126 is merged.
+
+## Owner-authorized in-place deployment
+
+After the isolated checks, input-menu opening/cancellation (four HDMI entries plus live TV) and
+restore-HOME-picker opening/cancellation also passed. No actual input or default HOME was changed.
+The owner then authorized updating the working launcher after the necessary tests.
+
+The installed 206 APK was backed up privately. The normal 209 APK was signed with the original
+local key, and its certificate compared equal to the installed 206 certificate. The update APK
+SHA-256 was `c31af4521897a285bbeb357bd4fd38ae4f77e86faaf69d7c497e115b35905782`. It was
+installed using replace/retain-data mode, without uninstalling or clearing the launcher.
+
+Readback confirmed version 2.4.0-sony-cn-preview / 209. All 25 app positions matched the
+pre-update traversal. Default HOME, display parameters and the disabled-app list matched their
+baselines. Home opened the updated launcher; initial focus/title, rapid return and system Settings
+return passed. Both temporary packages were absent, and the TV was awake. Long-running and
+deep-standby checks listed above remain outside this short regression.
+
+A fresh short sample of the installed 209 process (same no-wallpaper/default animation setup)
+reported startup PSS 113,283 KiB (110.6 MiB), navigation PSS 87,606 KiB (85.6 MiB), idle CPU 0%
+and navigation CPU 29-33% of one core. Android reported 279 frames, zero janky frames, frame p95
+8 ms, GPU p95 4 ms and zero missed vsyncs. The same whole-process/short-sample limits apply.
+
+![Installed Sony 209 after data-preserving update](sony-209-installed.png)
