@@ -26,4 +26,24 @@
     <string name="input_key_service_description">按遥控器输入源键时打开输入源选择器。</string>
     <string name="home_key_name">主屏幕按键</string>
     <string name="home_key_description">使遥控器主屏幕键打开此桌面。</string>
+    <string name="vpn_off">VPN 未连接</string>
+    <string name="card_prompt_title">%1$s 提供了新卡片</string>
+    <string name="card_prompt_body">%1$s 可以在主屏幕上显示卡片。保持隐藏时，应用原有图标不变。</string>
+    <string name="card_prompt_names">卡片名称为“%1$s”，所属应用为“%2$s”。</string>
+    <string name="card_prompt_resigned">%1$s 更新后的签名发生变化，之前的选择不再适用。请重新选择是否显示卡片。</string>
+    <string name="card_prompt_relabelled">%1$s 更改了卡片名称。请重新选择是否显示。</string>
+    <string name="card_prompt_hint">以后可以长按“设置”上的确认键修改。</string>
+    <string name="card_prompt_identity">%1$s，签名指纹 %2$s</string>
+    <string name="card_keep_hidden">保持隐藏</string>
+    <string name="card_show">显示卡片</string>
+    <string name="card_not_saved">无法保存选择</string>
+    <string name="module_cards">模块卡片</string>
+    <string name="no_module_cards">未安装模块卡片</string>
+    <string name="card_app_name">应用：%1$s</string>
+    <string name="card_state_shown">已显示</string>
+    <string name="card_state_over_limit">已选择显示，超过 8 张上限</string>
+    <string name="card_state_hidden">已隐藏</string>
+    <string name="card_state_new">新卡片</string>
+    <string name="card_state_new_key">签名已更改</string>
+    <string name="card_state_new_label">名称已更改</string>
 </resources>
