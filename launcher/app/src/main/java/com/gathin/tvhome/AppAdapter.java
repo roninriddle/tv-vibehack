@@ -138,6 +138,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             }
             return a.label.compareToIgnoreCase(b.label);
         });
+        // Optional "Default home" tile (config.xml), only when this TV actually has a home-screen picker.
+        if (ctx.getResources().getBoolean(R.bool.show_home_settings_shortcut)
+                && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
+            fresh.add(new Entry(ctx.getString(R.string.home_settings),
+                    new ComponentName(ctx, HomeSettingsActivity.class), null,
+                    ctx.getDrawable(R.drawable.ic_home_settings)));
+        }
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
@@ -199,8 +206,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
-        if (e.component.getClassName().equals(RestoreHomeActivity.class.getName())) {
-            ctx.startActivity(new Intent(ctx, RestoreHomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        if (e.component.equals(new ComponentName(ctx, RestoreHomeActivity.class))
+                || e.component.equals(new ComponentName(ctx, HomeSettingsActivity.class))) {
+            ctx.startActivity(new Intent().setComponent(e.component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)

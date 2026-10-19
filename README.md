@@ -8,14 +8,21 @@
 **Your TV, minus the ads.**
 
 Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
-screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled,
-and a one-line restore if you change your mind.
+screen with a clean launcher that looks like an Apple TV.
+
+**No root, no cable, nothing uninstalled, and a one-line restore if you change your mind.**
 
 ![Before: stock Google TV home with a sponsored ad. After: the tv-vibehack launcher](docs/stock-vs-new-side.jpg)
 
 It started as an afternoon fixing my parents' Mi TV, which showed them an advert before they
 could reach Netflix. The whole thing was done with Claude Code talking to the real TV, and the
-prompt that did it is in this repo so you can do the same with yours.
+prompt that did it is in this repo so you can do the same with yours. The replies to the
+[tweet below](https://x.com/gathint/status/2111379569030939102) are where most of the TV lists in
+this repo came from.
+
+<p align="center">
+  <a href="https://x.com/gathint/status/2111379569030939102"><img src="docs/tweet.png" alt="The tweet: Vibe coded my parents' TV this afternoon. Before and after screenshots." width="380"></a>
+</p>
 
 ---
 
@@ -86,6 +93,9 @@ A home screen that is yours again:
 - **A greeting, a large thin clock and the date**, set in
   [Outfit](https://fonts.google.com/specimen/Outfit).
 - **A matching Clock screensaver**, optional, that drifts around the screen so nothing burns in.
+- **The remote's Input button can keep working.** On Google TV the stock launcher handled it; an
+  optional accessibility service maps it (`KEYCODE_TV`) to the system input switcher in any app.
+  Install with `INPUT_KEY_SERVICE=1` to turn it on.
 
 And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
 phoning home, no apps you never asked for.
@@ -95,18 +105,35 @@ phoning home, no apps you never asked for.
 Anything running **Android TV** or **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
 Realme, Nvidia Shield and most others.
 
-Not supported: Samsung (Tizen), LG (webOS) and Amazon Fire TV. They run different systems or
-won't let a third-party launcher take over Home.
+Not supported: Samsung (Tizen) and LG (webOS), which run different systems. Amazon Fire TV
+(Fire OS) takes the debloat half only: Fire OS won't let a third-party launcher take over Home,
+so the Fire TV lists below are about removing Amazon's ads and telemetry, not the home screen.
 
 Lists that people have tested and contributed live in [`examples/`](examples/):
 
 | TV | OS |
 |---|---|
+| BenQ E55-735 (Changhong AI PONT, DVB96BQ) | Google TV 14 |
+| CHiQ AI PONT (DVB93CQ) | Android TV 11 |
+| Hisense SmartTV 4K FFM (huangshan, MediaTek) | Android TV 10 |
+| Insignia 55" F30 4K Fire TV (NS-55F301NA25, AFTDCT31, duckie) | Fire OS 7 / Android 9 |
+| NVIDIA SHIELD TV Pro 2019 (P2897, mdarcy) | Android TV 11 |
+| OnePlus TV (D00, Dubai) | Google TV 14 |
+| RCA AI PONT SA (Changhong, redwood, ISDB92RC) | Android 14 |
+| SANYO ATV R2 (SCBC, Realtek RTD285O) | Android TV 9 |
+| Sony BRAVIA 4K UR2 (BRAVIA_UR2_4K, MediaTek) | Android TV 10 |
+| Sony BRAVIA XBR-65X900E (2017, BRAVIA_ATV2) | Android TV 9 |
+| TCL 55" 4K Google TV, 2023 (G10, G10_4K_US_NF) | Google TV 12 |
+| TCL 65C725 (Smart TV Pro, BeyondTV4) | Android TV 11 |
+| TCL BeyondTV (India) | Android TV 9 |
+| TCL QM6K Pro, 2025 (G08, MediaTek tcl9618) | Google TV 14 |
+| Xiaomi Mi Box S (MIBOX4, oneday), streaming box | Android TV 9 |
+| Xiaomi Mi TV (MiTV-MOOQ0, croods) | Android TV 10 |
 | Xiaomi Mi TV 4A (MiTV-MOOQ1) | Android TV 10 |
-| Xiaomi MiTV-AXSO0 | Android TV 9 |
-| TCL 55" 4K Google TV, 2023 (G10) | Google TV 12 |
-| SANYO ATV R2 | Android TV 9 |
-| OnePlus TV (D00) | Google TV 14 |
+| Xiaomi MiTV-AESP0 stick (aquaman, 1 GB) | Android TV 9 |
+| Xiaomi MiTV-AXSO0 (dangal) | Android TV 9 |
+| Xiaomi MiTV-MOOR2 (venom, MediaTek) | Google TV 11 |
+| Xiaomi TV A Pro 75" 2026 (MiTV-MZTU0, river, MediaTek) | Google TV 14 |
 
 Your TV not here? The prompt works regardless, it discovers the bloat itself. If you add your
 list afterwards, the next person with your model skips that step. See
@@ -152,12 +179,18 @@ rewriting themselves.
 
 ## The launcher
 
-A small native Android TV app (`com.gathin.tvhome`, about 1.6 MB), written in plain Java with
+A small native Android TV app (`com.gathin.tvhome`, about 250 KB installed), written in plain Java with
 AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
 video, no network, no background services.
 
 **Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
-the dock order, apps to hide, your TV's Live TV package, and the number of columns.
+the dock order, apps to hide, your TV's Live TV package, the number of columns, and how many grid
+rows stay visible under the dock (`rows_below_dock`). The Inputs button hides itself on sticks and
+boxes that have no HDMI or tuner.
+
+**Language** follows the TV: English, German, Spanish, Catalan and Simplified Chinese so far. If your
+TV doesn't offer yours system-wide, Android 13 and later can set it for the launcher alone, e.g. Catalan:
+`tools/tv.py 'cmd locale set-app-locales com.gathin.tvhome --locales ca'`.
 
 **Build and install** with one command:
 
@@ -173,8 +206,9 @@ sdkmanager "platforms;android-34" "build-tools;34.0.0"
 ```
 
 Without Homebrew, the script also finds a JDK 17 known to `/usr/libexec/java_home` and an SDK in
-`~/Library/Android/sdk`, Android Studio's default. A release build (`./gradlew assembleRelease`)
-is smaller and faster on 1 GB sets; sign it yourself before installing.
+`~/Library/Android/sdk`, Android Studio's default. The script installs a shrunk release build
+(about 250 KB instead of 1.6 MB, signed with the debug key so it installs over an older build)
+and asks the TV to precompile it, so the first launch doesn't wait for the JIT.
 
 **Navigation** is deliberate: Up and Down move exactly one row, Up from the dock goes to the top
 buttons, the ends of the button row don't fall through to tiles, and the last focused app is
@@ -194,6 +228,13 @@ tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components
 It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
 </details>
 
+### Changing the default home from the TV
+
+Optional: set `show_home_settings_shortcut` to `true` in `config.xml` and a **Default home** tile
+appears at the end of the grid, opening Android's own home-screen picker so you can switch
+launchers from the sofa. Most Android TV firmware has no such page, and then the tile stays
+hidden. The stock launcher has to be enabled before it can be picked, see the restore instructions.
+
 ## Troubleshooting
 
 Things that bit us or contributors, so they don't bite you.
@@ -205,6 +246,9 @@ Things that bit us or contributors, so they don't bite you.
   `tools/tv.py` avoids the binary entirely.
 - **No "wireless debugging" toggle** on some TVs, Xiaomi among them. USB debugging alone opens
   network ADB on port 5555.
+- **USB devices go dead while USB debugging is on**, seen on the Xiaomi Mi Box S: its firmware
+  switches the USB port to ADB device mode, which cuts the power to a USB speaker or drive. Switch
+  USB debugging off when you're done; the launcher doesn't need it.
 - **Windows PowerShell 5.1 adds a byte-order mark** to text piped into a program, which turned the
   first batch command into gibberish. `tv.py` now strips it, and the `.ps1` scripts pipe clean UTF-8.
 - **Git Bash rewrites paths** like `/data/local/tmp` into Windows paths. The scripts set
@@ -219,11 +263,36 @@ Things that bit us or contributors, so they don't bite you.
   Home before `screencap`.
 - **Disable the stock launcher only after the new one is installed**, or the Home button lands on
   a factory test app.
+- **The new launcher still doesn't own Home** after the stock one is disabled, seen on Google TV
+  (Xiaomi MiTV-MOOR2). Another system app answers HOME: `com.google.android.tungsten.setupwraith`,
+  with `.MainActivity` at intent-filter priority 4 and `.RecoveryActivity` at priority 1. You
+  cannot outrank it, and the obvious workarounds don't help: Android ignores `android:priority` on
+  HOME filters for apps that aren't on the system image, `cmd package set-home-activity` prints
+  `Success` without changing anything (not even after a reboot), and `pm disable-user` on one of
+  setupwraith's components is refused with a SecurityException. Disabling the whole
+  `com.google.android.tungsten.setupwraith` package is what frees the slot. It is the first-run
+  setup wizard, so everyday use is unaffected, but re-enable it before a factory reset - list it in
+  your `debloat.txt` and `tools/restore.sh` does that for you.
+- **The TV drops off Wi-Fi every minute right after the install**, seen on Google TV 14 (Xiaomi
+  MiTV-MZTU0): the same setupwraith `.RecoveryActivity` took Home and system_server crash-looped
+  on it. The install script now starts the new launcher before disabling the stock one, sets the
+  home preference last (Android drops it whenever the set of HOME apps changes), then checks where
+  Home resolves and re-enables the stock launcher if it is not the new one. Disable setupwraith as
+  above. If you're already in the loop:
+  `tools/tv.py 'pm enable --user 0 com.google.android.apps.tv.launcherx'`.
 - **No on-screen keyboard** after switching launchers, seen on Xiaomi: the default input method
   pointed at a Baidu keyboard that isn't installed. Fix:
   `tools/tv.py 'ime set com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME'`
 - **Third-party launchers** often charge for basics like a custom wallpaper. That's why this repo
   has its own.
+- **Wrong time zone, clock off by 30 or 60 minutes**, seen on Xiaomi in Iran: the TV picked a
+  neighbouring zone, and older firmware ships time zone data from before Iran dropped daylight
+  saving in 2022 (on Android 10 and newer, check with
+  `tools/tv.py 'cat /apex/com.android.tzdata/etc/tz/tz_version'`). Set the zone yourself:
+  `tools/tv.py 'settings put global auto_time_zone 0; cmd alarm set-timezone Asia/Tehran'`.
+  If the clock then jumps an hour ahead in spring, a fixed offset keeps it right:
+  `tools/tv.py 'cmd alarm set-timezone GMT+03:30'`. The same applies to any country whose rules
+  changed after the firmware was built.
 
 ## Questions people ask
 

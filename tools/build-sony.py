@@ -117,16 +117,22 @@ def main():
     manifest = ET.parse(src / 'AndroidManifest.xml')
     top = manifest.getroot()
     top.set('package', 'com.gathin.tvhome')
-    top.set('{' + ANDROID + '}versionCode', '206')
-    top.set('{' + ANDROID + '}versionName', '2.2.3-sony-cn')
+    gradle = (ROOT / 'launcher/app/build.gradle').read_text()
+    version_code = re.search(r'versionCode\s+(\d+)', gradle).group(1)
+    version_name = re.search(r"versionName\s+'([^']+)'", gradle).group(1)
+    target_sdk = re.search(r'targetSdk\s+(\d+)', gradle).group(1)
+    top.set('{' + ANDROID + '}versionCode', version_code)
+    top.set('{' + ANDROID + '}versionName', version_name)
     top.insert(0, ET.Element('uses-sdk', {'{' + ANDROID + '}minSdkVersion': '26',
-                                         '{' + ANDROID + '}targetSdkVersion': '29'}))
+                                         '{' + ANDROID + '}targetSdkVersion': target_sdk}))
     mf = build / 'AndroidManifest.xml'
     manifest.write(mf, encoding='utf-8', xml_declaration=True)
     app_res = build / 'app-resources.zip'
     run([tools / 'aapt2', 'compile', '--dir', src / 'res', '-o', app_res])
     gen = build / 'generated'
-    gen.mkdir(exist_ok=True)
+    if gen.exists():
+        shutil.rmtree(gen)
+    gen.mkdir()
     resource_apk = build / 'resources.apk'
     command = [tools / 'aapt2', 'link', '-o', resource_apk, '--manifest', mf,
                '-I', android_jar, '--java', gen, '--auto-add-overlay',

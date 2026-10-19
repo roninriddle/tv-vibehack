@@ -9,21 +9,20 @@ android {
     defaultConfig {
         applicationId 'com.gathin.tvhome'
         minSdk 26
-        targetSdk 29
-        versionCode 206
-        versionName '2.2.3-sony-cn'
+        targetSdk 34
+        versionCode 207
+        versionName '2.3.0-sony-cn-preview'
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Sideloaded over ADB, never published: sign with the debug key so it installs over a debug build.
+            signingConfig signingConfigs.debug
         }
-    }
-
-    lint {
-        // The launcher is sideloaded over ADB, never published to Google Play, so Play's minimum targetSdk
-        // does not apply; without this, lintVitalRelease fails assembleRelease.
-        disable 'ExpiredTargetSdkVersion'
     }
 
     compileOptions {

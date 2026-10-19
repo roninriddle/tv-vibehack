@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">简洁桌面</string>
+    <string name="inputs">输入源</string>
+    <string name="wifi">无线网络</string>
+    <string name="settings">设置</string>
+    <string name="choose_input">输入源</string>
+    <string name="connected">已连接</string>
+    <string name="standby">待机</string>
+    <string name="not_connected">未连接</string>
+    <string name="live_tv">电视直播</string>
+    <string name="no_inputs">未找到输入源</string>
+    <string name="good_morning">早上好</string>
+    <string name="good_afternoon">下午好</string>
+    <string name="good_evening">晚上好</string>
+    <string name="good_night">晚安</string>
+    <string name="ethernet">有线网络</string>
+    <string name="offline">未连接网络</string>
+    <string name="not_available">此电视不支持该功能</string>
+    <string name="cant_open">无法打开 %1$s</string>
+    <string name="date_format">M月d日 EEEE</string>
+    <string name="dream_name">时钟</string>
+    <string name="vpn">VPN</string>
+    <string name="home_settings">默认桌面</string>
+    <string name="home_settings_help">在系统设置中选择主屏幕，然后按 Home 键。</string>
+    <string name="input_key_service_description">按遥控器输入源键时打开输入源选择器。</string>
+    <string name="home_key_name">主屏幕按键</string>
+    <string name="home_key_description">使遥控器主屏幕键打开此桌面。</string>
+</resources>
