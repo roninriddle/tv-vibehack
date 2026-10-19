@@ -114,7 +114,7 @@ Android 无线调试的配对端口与连接端口通常不同。连接地址、
 
 ## 仓库分支与上游贡献
 
-长期只保留 `sony`，也是仓库默认分支。原 `main` 和 `sony-cn` 的提交历史均已合入，旧分支退役；已测试的 206 快照仍可按历史提交访问。展示 PR #126 的 `docs/sony-showcase` 是临时贡献分支，合并后删除。
+长期只保留 `sony`，也是仓库默认分支。原 `main` 和 `sony-cn` 的提交历史均已合入，旧分支退役；已测试的 206 快照仍可按历史提交访问。展示 PR #126 已合并，`docs/sony-showcase` 临时分支已删除。其他正在进行的贡献分支按各自 PR 流程处理。
 
 后续在 `sony` 获取并合并 `upstream/main`，解决冲突时保留索尼配置、排序存储键和中文说明，完成构建及适当验证后推送。上游跟踪引用不需要在个人仓库再保留一个 `main` 分支。
 
@@ -123,7 +123,7 @@ Android 无线调试的配对端口与连接端口通常不同。连接地址、
 - [#29 索尼兼容性反馈](https://github.com/Gathin23/cleanyourtv/issues/29)：维护者已确认并关闭。
 - [#30 通用默认桌面入口](https://github.com/Gathin23/cleanyourtv/pull/30)：已合并；上游默认关闭，仅在存在系统选择页时显示。
 - [#32 简体中文本地化](https://github.com/Gathin23/cleanyourtv/pull/32)：已合并。
-- [#126 索尼适配展示](https://github.com/Gathin23/cleanyourtv/pull/126)：已提交，等待维护者处理；临时分支合并后删除。
+- [#126 索尼适配展示](https://github.com/Gathin23/cleanyourtv/pull/126)：已合并；上游 SHOWCASE.md 已收录，临时分支已清理。
 - [#56 动画过渡](https://github.com/Gathin23/cleanyourtv/pull/56)：为精简分支撤回尚待实测的草稿，实现保留在 `sony`。
 - [#19 遥控器排序与应用库](https://github.com/Gathin23/cleanyourtv/pull/19)、[#24 无线调试说明](https://github.com/Gathin23/cleanyourtv/pull/24)：已补充索尼测试反馈。#19 的独立应用库不是本 Sony 分支已经合入的功能。
 

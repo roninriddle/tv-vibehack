@@ -86,8 +86,8 @@ was tested on build 206; the new 209 regression only opens/cancels the picker.
 
 The default long-term branch is `sony`, merging both former `main` and `sony-cn` histories.
 The merge did not change the tested launcher source. Future updates merge `upstream/main` into
-`sony` while preserving Sony configuration and saved-order compatibility. The separate
-docs/sony-showcase contribution branch remains only until upstream PR #126 is merged.
+`sony` while preserving Sony configuration and saved-order compatibility. Upstream PR #126 was verified merged on 20 October 2026 and its exact temporary
+docs/sony-showcase branch was deleted. Other active contribution worktrees were preserved.
 
 ## Owner-authorized in-place deployment
 
