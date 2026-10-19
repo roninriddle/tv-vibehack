@@ -1,259 +1,112 @@
-# tv-vibehack
+# tv-vibehack：索尼国行简洁桌面
 
-**Your TV, minus the ads.**
+基于 [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack) 的个人适配项目，为索尼国行电视提供简洁、可用遥控器排序的桌面。适配过程中没有安装 Google 框架，也没有刷机、root、卸载或停用系统应用。
 
-Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
-screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled,
-and a one-line restore if you change your mind.
+**使用索尼适配版请切换到 [`sony-cn`](https://github.com/roninriddle/tv-vibehack/tree/sony-cn)。`main` 保留原始源码基线，仅将仓库入口说明改为中文。**
 
-![Before: stock Google TV home with a sponsored ad. After: the tv-vibehack launcher](docs/stock-vs-new-side.jpg)
+## 版本与验证状态
 
-It started as an afternoon fixing my parents' Mi TV, which showed them an advert before they
-could reach Netflix. The whole thing was done with Claude Code talking to the real TV, and the
-prompt that did it is in this repo so you can do the same with yours.
+| 版本 | 状态 |
+| --- | --- |
+| `2.2.3-sony-cn` / 206 | 此前已在 Sony K-85XR70 上安装并完成短时功能验证；原始快照见 [`e85d8d0`](https://github.com/roninriddle/tv-vibehack/commit/e85d8d0175790c3535d1abb2e9b66ae4a0491b38) |
+| `2.3.0-sony-cn-preview` / 207 | `sony-cn` 当前源码，基于上游 v2.1.0 / `38b65eb`，targetSdk 34；已通过直接 SDK 编译和签名检查，尚未安装或完成实机回归 |
 
----
+207 是待验证的集成候选版。目前电视仍使用此前安装的版本，仓库更新不会自动更新电视。
 
-## Table of contents
+## 当前索尼适配版功能
 
-- [How it works](#how-it-works)
-- [Quick start](#quick-start)
-- [What you get](#what-you-get)
-- [Supported TVs](#supported-tvs)
-- [Doing it by hand](#doing-it-by-hand)
-- [The launcher](#the-launcher)
-- [Troubleshooting](#troubleshooting)
-- [Questions people ask](#questions-people-ask)
-- [Contributing](#contributing)
-- [Licence](#licence)
+| 功能 | 说明 |
+| --- | --- |
+| 中文界面 | 中文菜单、问候语、日期、网络状态与输入源提示；保留上游多语言资源 |
+| 两排常用应用 | 默认显示两排，八个常用应用在前，其余应用放在后面 |
+| 遥控器排序 | 长按确认键选择“移动应用”，方向键移动，确认保存，返回取消；排列保存在本机，重开应用后保留 |
+| 应用入口发现 | 发现 TV 应用、普通 Android 应用和桌面入口，按应用包名去重 |
+| 增强动画 | GPU 加速、焦点缩放与上浮、弹性高亮、按应用图标取色的背景过渡、顶部按钮反馈、应用进入动画 |
+| 动画与焦点修复 | 候选版加入快速切换时的标题/背景动画取消处理，合并上游滚动高亮对齐及返回应用后的焦点修复；这些新增集成仍待实测 |
+| 电视端恢复桌面 | “恢复索尼原桌面”图标打开系统默认桌面选择页，由用户选择原桌面；原桌面须保持启用 |
+| 输入源与系统入口 | 输入源菜单、直播入口、网络与系统设置快捷入口；实际 HDMI 切换仍待专项验证 |
+| 时钟与可选能力 | 时钟、日期、问候语、可选时钟屏保；上游提供可配置的 VPN 应用入口、波斯历日期、输入源键与 Home 键辅助服务，均不代表已在本机启用或验证 |
+| 电脑端辅助工具 | 本地构建、配置基线备份、试用、启用/恢复桌面与恢复显示参数；备份不是整机镜像或完整应用数据备份 |
 
----
+增强动画的主界面背景颜色过渡约为 360 ms。候选版可以通过 `config.xml` 的 `animate_ambient_color=false` 切回原先的淡出/换色/淡入方式。`rows_below_dock=1` 用于保留两排布局；通用“默认桌面”图标默认关闭，索尼独立恢复入口保留。
 
-## How it works
+### 初始应用排列
 
-Android TVs have the same debug bridge as Android phones. Once you switch on USB debugging in the
-TV's developer options, the TV listens on your Wi-Fi and asks you once to allow your computer.
-After that, everything is standard Android tooling:
+| 第一排 | Netflix | 银河奇异果 | 飞牛 TV | NewTV 极光 |
+| --- | --- | --- | --- | --- |
+| 第二排 | 迅雷云盘 | Sparkle TV | 设置 | 应用中心 |
 
-1. **Back up** the list of installed packages and settings.
-2. **Disable** the manufacturer's telemetry, ad services, content rows and preloaded junk with
-   `pm disable-user`. Nothing is uninstalled, so a restore script can undo every step.
-3. **Install** a small native launcher and make it the default home screen.
+排序在电视上即可修改，不需要电脑。初始配置不包含这些应用的安装包；未安装的应用不会因此被自动安装。
 
-The bloat differs by brand, which is why the prompt asks your coding assistant to discover it
-on your TV and ask you before touching anything you might use.
+![此前实机使用的索尼 206 版桌面](https://raw.githubusercontent.com/roninriddle/tv-vibehack/sony-cn/docs/sony-cn-home.png)
 
-## Quick start
+上图来自此前已安装的 206 版，不是 207 候选版完成回归的证明。
 
-You need a computer on the same Wi-Fi as the TV and a coding assistant with shell access
-(Claude Code, or anything similar).
+## 增强动画的内存与性能
 
-**1. On the TV**
-Settings → Device Preferences → About → press OK on **Build** seven times → go back →
-Developer options → turn on **USB debugging**. Some TVs also show a Network or ADB debugging
-toggle; turn it on too. Keep the TV switched on.
+以下是 Sony K-85XR70 上的历史短测，统计的是**整个桌面进程**。PSS 是按比例分摊共享内存后的进程内存指标。
 
-**2. On your computer**
-Open your assistant, paste the prompt from [`PROMPT.md`](PROMPT.md), and fill in your TV model.
+| 测试状态 | 内存 | 帧时间与 CPU |
+| --- | --- | --- |
+| 已实测 Sony 206 版增强动画 | 导航后 PSS 约 **85 MiB**，启动时约 **110 MiB** | 270 帧样本，系统报告卡顿帧 0，帧时间 p95 ≤ 7 ms；空闲 CPU 样本 0%，连续导航约占一个核心的 28%–30% |
+| 通用动画早期隔离测试，最终标题清理之前 | 导航后 PSS **88,816 KiB，约 86.7 MiB** | 292 帧样本，系统报告卡顿帧 0，帧时间 p95 8 ms、GPU 时间 p95 4 ms；导航 CPU 约占一个核心的 26.4%–29% |
+| 当前 207 集成候选版 | **待实机测量** | SDK 编译和签名检查已通过，不能据此推断实际流畅度或内存 |
 
-**3. Follow along**
-Accept the "Allow USB debugging?" prompt when it appears on the TV, then answer the checklist
-questions: which streaming apps you use, which four go in the dock, whether to keep the voice
-assistant, Chromecast and firmware updates.
+**这些数值不是“动画额外占用的内存”。** 尚无关闭动画后的同条件对照，不能计算动画本身的内存增量。短测中的 0 卡顿帧不等于长期无卡顿；启动与导航采样也不构成完整峰值测量。尚未完成数日运行、待机恢复或低内存设备验证。
 
-That's it. The assistant backs up, debloats, builds and installs the launcher, and checks every
-step with screenshots pulled from the TV. On a 1 GB Mi TV the whole thing took one afternoon the
-first time; with this repo as context, people report about fifteen minutes.
+## 已验证设备与显示限制
 
-## What you get
+- 机型：Sony K-85XR70，国行；系统报告 BRAVIA 4K AE2 / BRAVIA_AE2。
+- 系统：Android 14 / API 34；实读固件 `114.602.170.1`，CNA。
+- Google 框架：未发现 Google Play 服务、Google 服务框架和 Play 商店；桌面不依赖它们。
+- 硬件摘要：MediaTek、四核 Cortex-A73、Mali-G57；系统可见内存约 4.54 GiB，不作为物理内存标称值。
+- 显示：此前实测 Android 桌面为 **1920×1080 / 60 Hz**。4K UI 请求未生效，已恢复测试前的显示参数。
 
-A home screen that is yours again:
+本固件的 Android 图形界面存在 1080p 尺寸限制。本项目目前没有实现 4K 或 120 Hz 桌面，也不能据此判断面板、视频播放及 HDMI 的能力。
 
-- **Pitch-black background** and a dock of your four favourite apps at the bottom, in a lighter
-  rounded band, exactly where Apple TV puts it.
-- **A top shelf** showing the focused app's name in large type, with an ambient glow in a colour
-  taken from the app's own artwork.
-- **The rest of your apps in a grid** that slides up when you press Down.
-- **One floating glass highlight** that springs from tile to tile instead of each tile drawing its
-  own border. The focused tile lifts slightly and shows its name.
-- **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
-  network you're on) and Settings.
-- **A greeting, a large thin clock and the date**, set in
-  [Outfit](https://fonts.google.com/specimen/Outfit).
-- **A matching Clock screensaver**, optional, that drifts around the screen so nothing burns in.
+此前已验证排序预览/取消/保存、重开后的排列保持、设置返回、输入菜单显示、恢复原桌面与重新启用、初始焦点及 Home 键。整机重启、数日待机、真实 HDMI 切换、全部流媒体播放、其他机型和固件仍待验证；本机结果不等于所有索尼电视均兼容。
 
-And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
-phoning home, no apps you never asked for.
+## 构建与使用
 
-## Supported TVs
+索尼源码和具体操作见：
 
-Anything running **Android TV** or **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
-Realme, Nvidia Shield and most others.
+- [索尼分支详细说明](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/SONY_CN.md)
+- [索尼电视使用说明](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/索尼电视使用说明.md)
+- [桌面配置文件](https://github.com/roninriddle/tv-vibehack/blob/sony-cn/launcher/app/src/main/res/values/config.xml)
 
-Not supported: Samsung (Tizen), LG (webOS) and Amazon Fire TV. They run different systems or
-won't let a third-party launcher take over Home.
-
-Lists that people have tested and contributed live in [`examples/`](examples/):
-
-| TV | OS |
-|---|---|
-| Xiaomi Mi TV 4A (MiTV-MOOQ1) | Android TV 10 |
-| Xiaomi MiTV-AXSO0 | Android TV 9 |
-| TCL 55" 4K Google TV, 2023 (G10) | Google TV 12 |
-| SANYO ATV R2 | Android TV 9 |
-| OnePlus TV (D00) | Google TV 14 |
-
-Your TV not here? The prompt works regardless, it discovers the bloat itself. If you add your
-list afterwards, the next person with your model skips that step. See
-[Contributing](#contributing).
-
-## Doing it by hand
-
-Everything the assistant does, you can run yourself. The tools need Python 3 and nothing else.
+准备 JDK 17、Android SDK Platform 34 和 Build Tools 34.0.0，在 `sony-cn` 分支执行本地构建工具：
 
 ```bash
-python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt
-export TV_HOST=192.168.1.50                                   # your TV's IP address
-
-tools/venv/bin/python -I tools/tv.py --probe                 # model, Android version, firmware
-tools/venv/bin/python -I tools/tv.py 'pm list packages'      # run one shell command on the TV
-printf 'cmd1\ncmd2\n' | tools/venv/bin/python -I tools/tv.py --batch   # several, one connection
-
-tools/disable.sh examples/xiaomi-mi-tv-4a/debloat.txt        # apply a debloat list
-tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # undo it and restore the stock launcher
+python3 tools/build-sony.py --java-home /path/to/jdk17 --sdk /path/to/android-sdk
 ```
 
-| Tool | What it does |
-|---|---|
-| [`tools/tv.py`](tools/tv.py) | A pure-Python ADB client: shell, batch, push, pull. Works where the stock `adb` binary is blocked. |
-| [`tools/b64push.py`](tools/b64push.py) | Uploads larger files such as APKs as base64 chunks and verifies the checksum. |
-| [`tools/disable.sh`](tools/disable.sh) / [`tools/restore.sh`](tools/restore.sh) | Apply or undo a debloat list. PowerShell versions sit next to them. |
+该工具只负责构建与签名，输出 `outputs/sony-tvhome-trial.apk`。当前没有在本仓库发布安装包；上游 v2.1.0 也是不带二进制附件的源码发布。
 
-### Windows
+安装到已有桌面时须使用原签名并保留应用数据。贡献工作区生成的候选包使用测试签名，不能直接覆盖此前的实机安装。新候选版本先通过独立应用 ID、移除 HOME 注册的隔离包验证，再考虑更新现用桌面。
 
-The PowerShell scripts work without WSL or Git Bash. With Android Studio installed nothing else
-is needed: the install script uses Android Studio's bundled JDK and the default SDK location.
+**不要把上游 `build-and-install` 当作索尼版的单纯试用入口。** 该脚本会切换默认桌面，并可能停用指定的原桌面；本项目当前保留电视上正常工作的桌面和全部应用。
 
-```powershell
-python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt
-powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50
-powershell -ExecutionPolicy Bypass -File tools\disable.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt
-powershell -ExecutionPolicy Bypass -File tools\restore.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt
-```
+Android 无线调试的配对端口与连接端口通常不同。连接地址、配对码、签名密钥、账户信息与原始设备备份不应提交到 GitHub。`.local/` 和 `outputs/` 均不纳入版本控制。
 
-The install script stops before touching the stock launcher if the install or the home-screen
-switch fails. Git Bash also works; the `.sh` scripts detect a Windows venv and disable MSYS path
-rewriting themselves.
+## 仓库分支与上游贡献
 
-## The launcher
+仓库只保留两个分支：
 
-A small native Android TV app (`com.gathin.tvhome`, about 1.6 MB), written in plain Java with
-AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
-video, no network, no background services.
+| 分支 | 用途 |
+| --- | --- |
+| `main` | 原始源码基线与中文仓库入口；不包含 Sony 专属功能代码 |
+| `sony-cn` | Sony 国行适配与后续集成；保留原排列数据格式和电视端恢复入口 |
 
-**Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
-the dock order, apps to hide, your TV's Live TV package, and the number of columns.
+上游贡献记录：
 
-**Build and install** with one command:
+- [#29 索尼兼容性反馈](https://github.com/Gathin23/tv-vibehack/issues/29)：维护者已确认并关闭。
+- [#30 通用默认桌面入口](https://github.com/Gathin23/tv-vibehack/pull/30)：已合并；上游默认关闭，仅在存在系统选择页时显示。
+- [#32 简体中文本地化](https://github.com/Gathin23/tv-vibehack/pull/32)：已合并。
+- [#56 动画过渡](https://github.com/Gathin23/tv-vibehack/pull/56)：为精简分支撤回尚待实测的草稿，实现保留在 `sony-cn`。
+- [#19 遥控器排序与应用库](https://github.com/Gathin23/tv-vibehack/pull/19)、[#24 无线调试说明](https://github.com/Gathin23/tv-vibehack/pull/24)：已补充索尼测试反馈。#19 的独立应用库不是本 Sony 分支已经合入的功能。
 
-```bash
-TV_HOST=192.168.1.50 launcher/build-and-install.sh
-```
+没有经过数日精简验证，不为本机提供 debloat 清单。其他机型的上游清单不能直接视为本机适用。
 
-It needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
+## 许可证
 
-```bash
-brew install openjdk@17 android-commandlinetools
-sdkmanager "platforms;android-34" "build-tools;34.0.0"
-```
-
-Without Homebrew, the script also finds a JDK 17 known to `/usr/libexec/java_home` and an SDK in
-`~/Library/Android/sdk`, Android Studio's default. A release build (`./gradlew assembleRelease`)
-is smaller and faster on 1 GB sets; sign it yourself before installing.
-
-**Navigation** is deliberate: Up and Down move exactly one row, Up from the dock goes to the top
-buttons, the ends of the button row don't fall through to tiles, and the last focused app is
-remembered when you come back, even after the app list changes.
-
-<details>
-<summary><strong>Optional: the Clock screensaver</strong></summary>
-
-A large thin clock and the date over an ambient glow, in the launcher's style. Every minute the
-clock drifts to a new spot and the glow shifts colour. The system runs it only while the TV is
-idle. Turn it on over ADB, or pick "Clock" in the TV's screensaver settings:
-
-```bash
-tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream; settings put secure screensaver_enabled 1'
-```
-
-It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
-</details>
-
-## Troubleshooting
-
-Things that bit us or contributors, so they don't bite you.
-
-**Connecting**
-
-- **macOS: `adb connect` says "No route to host"** although the port is open. Recent macOS treats
-  the Google-signed `adb` as its own app under Local Network privacy and silently blocks it.
-  `tools/tv.py` avoids the binary entirely.
-- **No "wireless debugging" toggle** on some TVs, Xiaomi among them. USB debugging alone opens
-  network ADB on port 5555.
-- **Windows PowerShell 5.1 adds a byte-order mark** to text piped into a program, which turned the
-  first batch command into gibberish. `tv.py` now strips it, and the `.ps1` scripts pipe clean UTF-8.
-- **Git Bash rewrites paths** like `/data/local/tmp` into Windows paths. The scripts set
-  `MSYS_NO_PATHCONV=1` for you. Set `JAVA_HOME` and `ANDROID_HOME` before building there.
-
-**Working on the TV**
-
-- **Chained `pm` commands** (`pm disable a; pm disable b`) may silently stop after the first. Run
-  one per shell call; `--batch` does exactly that.
-- **Large pushes hang** through the Python client. Use `tools/b64push.py` for APKs.
-- **Screenshots come out empty** while Live TV or an HDMI input is on screen, seen on TCL. Press
-  Home before `screencap`.
-- **Disable the stock launcher only after the new one is installed**, or the Home button lands on
-  a factory test app.
-- **No on-screen keyboard** after switching launchers, seen on Xiaomi: the default input method
-  pointed at a Baidu keyboard that isn't installed. Fix:
-  `tools/tv.py 'ime set com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME'`
-- **Third-party launchers** often charge for basics like a custom wallpaper. That's why this repo
-  has its own.
-
-## Questions people ask
-
-**Is this safe? Can it brick the TV?**
-No. Nothing is flashed, rooted or deleted. Packages are disabled for the user profile, which
-lives in the data partition, not in the system image. The firmware is untouched. If something
-goes wrong, `tools/restore.sh` puts everything back, and even without the tools you can re-enable
-apps from the TV's own settings.
-
-**What about firmware updates?**
-Most lists disable the manufacturer's update service, so updates only arrive when you re-enable
-it on purpose. If an update does land, the worst case is that a package comes back enabled and
-you re-run the script.
-
-**Won't the apps break as their APIs change?**
-The streaming apps still update through the Play Store, which is left alone. The launcher
-doesn't talk to them; it lists what's installed and launches it, using Android launcher intents
-that have been stable for over a decade.
-
-**How did it get access? Isn't that a security hole?**
-Through the Android Debug Bridge, with one explicit "allow this computer" tap on the TV, the same
-as developing an Android app. The TV only trusts the key you approved. You can switch USB
-debugging off again afterwards and the launcher keeps working.
-
-**Can I just download the launcher APK?**
-Build it yourself with the one-line script above; it takes about a minute and you control what
-goes on your TV. We don't publish prebuilt binaries.
-
-## Contributing
-
-The most useful contribution is your TV's debloat list, so the next person with that model
-doesn't have to rediscover it. Launcher improvements and sharper prompt wording are welcome too.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the format and the testing we ask for.
-
-## Licence
-
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+沿用上游 [MIT 许可证](LICENSE)。贡献原则见上游 [CONTRIBUTING.md](https://github.com/Gathin23/tv-vibehack/blob/main/CONTRIBUTING.md)。
