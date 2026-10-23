@@ -71,7 +71,8 @@ final class AppLibraryDialog {
     private final Handler main = new Handler(Looper.getMainLooper());
     /** Icons loaded for this opening, dropped with it. */
     private final Map<String, Drawable> icons = new HashMap<>();
-    private final Set<String> iconsLoading = new HashSet<>();
+    /** The latest view waiting for each icon; catalogue rebuilds can replace a card mid-load. */
+    private final Map<String, ImageView> iconsLoading = new HashMap<>();
     private final Runnable dismissed;
     private boolean closed;
     /** Only the latest load fills the catalogue, and it shows the popup if an opening is waiting. */
@@ -171,6 +172,7 @@ final class AppLibraryDialog {
             dismissActions();
             stopHighlight();
             icons.clear();
+            iconsLoading.clear();
             dismissed.run();
         });
     }
@@ -181,6 +183,7 @@ final class AppLibraryDialog {
             popup.dismiss();
         } else if (!closed) {
             closed = true;   // still loading: it never shows
+            iconsLoading.clear();
             dismissed.run();
         }
     }
@@ -309,7 +312,9 @@ final class AppLibraryDialog {
         icon.setTag(pkg);
         Drawable cached = icons.get(pkg);
         icon.setImageDrawable(cached);
-        if (cached != null || !iconsLoading.add(pkg)) return;
+        if (cached != null) return;
+        ImageView previous = iconsLoading.put(pkg, icon);
+        if (previous != null) return;
         PackageManager pm = activity.getPackageManager();
         LOADER.execute(() -> {
             Drawable loaded;
@@ -317,12 +322,12 @@ final class AppLibraryDialog {
             catch (RuntimeException unavailable) { loaded = null; }
             Drawable result = loaded;
             main.post(() -> {
-                iconsLoading.remove(pkg);
+                ImageView waiting = iconsLoading.remove(pkg);
                 if (closed) return;
                 Drawable shown = result != null ? result : activity.getDrawable(R.drawable.ic_apps);
                 icons.put(pkg, shown);
-                // The view may show another app by now; a view bound to it later takes it from the cache.
-                if (pkg.equals(icon.getTag())) icon.setImageDrawable(shown);
+                // A rebuild can replace the card while its icon loads; update the latest bound view.
+                if (waiting != null && pkg.equals(waiting.getTag())) waiting.setImageDrawable(shown);
             });
         });
     }
